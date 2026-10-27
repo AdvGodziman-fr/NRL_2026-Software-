@@ -1,0 +1,41 @@
+Max Angle of servo sweep : 63 deg.( from 90 to 27 or 88.5 to 30)
+Max Angle of servo (front carrier) : 145 (from 90 to 145)
+
+
+#include "NRL.h"
+
+static HexaServo arm{{.signalPin = SERVO_1, .startAngle = 88.5f, .settleMs = 0}};
+
+class Test_Prac1 : public NRLOpMode {
+    int angle_ = 0;
+    uint32_t lastAngleChangeMs_ = 0;
+    bool sweepComplete_ = false;
+
+public:
+    void init() override {
+        arm.begin();
+        angle_ = static_cast<int>(arm.getPosition());
+        lastAngleChangeMs_ = millis();
+        sweepComplete_ = false;
+    }
+
+    void loop() override {
+        if (sweepComplete_) return;
+
+        telemetry.addData("arm", angle_);
+
+        if (angle_ == 0) {
+            sweepComplete_ = true;
+        } else if (millis() - lastAngleChangeMs_ >= 500) {
+            lastAngleChangeMs_ = millis();
+            --angle_;
+            arm.setPosition(angle_);
+        }
+    }
+
+    void stop() override {
+        arm.detach(); // let the servo relax
+    }
+};
+
+REGISTER_OPMODE(Test_Prac1, "Tes1", TELEOP);
