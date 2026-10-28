@@ -17,14 +17,13 @@ public:
 
     void loop() override {
         if (sweepComplete_) return;
-
         telemetry.addData("arm", angle_);
 
-        if (angle_ == 180) {
+        if (angle_ == 146) {
             sweepComplete_ = true;
         } else if (millis() - lastAngleChangeMs_ >= 500) {
             lastAngleChangeMs_ = millis();
-            angle_++;
+            angle_ = angle_ + 10;
             arm.setPosition(angle_);
         }
     }
