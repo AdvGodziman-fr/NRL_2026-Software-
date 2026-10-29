@@ -39,3 +39,33 @@ public:
 };
 
 REGISTER_OPMODE(Test_Prac1, "Tes1", TELEOP);
+
+
+
+##Initial basic code for driving
+PART 1
+        if (gamepad1.leftY()) {
+            speed_++;
+        }
+
+        if (gamepad1.rightY()) {
+            --speed_;
+        }
+
+        if (gamepad1.leftX()) {
+
+        }
+
+part 2
+        if (maxspeed_ == true) {
+            telemetry.addData("Speed: ", " Maximum Speed Reached!");
+            speed_= +255;
+        } else if (minspeed_ == true) {
+            telemetry.addData("Speed: ", " Minimum Speed Reached!");
+            speed_ = -255;
+        } else {
+            telemetry.addData("Speed: ", speed_);
+        }
+
+        leftMotor.setSpeed(speed_);
+        rightMotor.setSpeed(speed_);
