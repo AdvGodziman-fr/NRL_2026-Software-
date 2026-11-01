@@ -156,4 +156,4 @@ public:
     }
 };
 
-REGISTER_OPMODE(Main_Code_Manual, "Main_Code", TELEOP);
+REGISTER_OPMODE(Main_Test_Code, "Test_Code", TELEOP);
