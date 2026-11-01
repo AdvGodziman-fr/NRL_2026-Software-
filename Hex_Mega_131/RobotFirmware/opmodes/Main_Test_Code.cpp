@@ -27,7 +27,10 @@ static HexaServo claw{{
 static TankDrive drive(leftMotor, rightMotor);
 
 static constexpr float MOVING_TURN_THRESHOLD = 0.25f;
-static constexpr float MOVING_TURN_FORWARD_LIMIT = 1.0f;
+static constexpr float MOVING_TURN_INNER_TO_OUTER_RATIO = 0.4f;
+static constexpr float SERVO_JOYSTICK_DEADZONE = 0.08f;
+static constexpr float SERVO_CONTROL_RATE_DPS = 60.0f;
+static constexpr float TELEOP_TICK_SECONDS = 0.01f;
 
 // SPI wiring for the LSM6DSOX; keep these breakout pins free while in use.
 static constexpr int IMU_CS_PIN   = DIGITAL_4;
@@ -36,9 +39,9 @@ static constexpr int IMU_MISO_PIN = DIGITAL_2;
 static constexpr int IMU_MOSI_PIN = DIGITAL_3;
 static Adafruit_LSM6DSOX imu;
 
-class Main_Code_Manual : public NRLOpMode {
-    int angleclaw_ = CLAW_START_ANGLE;
-    int anglebrdg_ = ARM_START_ANGLE;
+class Main_Test_Code : public NRLOpMode {
+    float angleclaw_ = CLAW_START_ANGLE;
+    float anglebrdg_ = ARM_START_ANGLE;
     int gear_;
     float G_x;
     float G_y;
@@ -46,6 +49,26 @@ class Main_Code_Manual : public NRLOpMode {
     bool maxspeed_ = false;
     bool minspeed_ = false;
     bool imuReady_ = false;
+
+    void updateServoWithJoystick(float axis, float& angle, float minAngle,
+                                 float maxAngle, HexaServo& servo) {
+        const float input = fmaxf(-1.0f, fminf(axis, 1.0f));
+        const float magnitude = fabsf(input);
+        if (magnitude <= SERVO_JOYSTICK_DEADZONE) {
+            return;
+        }
+
+        const float scaledInput = copysignf(
+            (magnitude - SERVO_JOYSTICK_DEADZONE) / (1.0f - SERVO_JOYSTICK_DEADZONE),
+            input);
+        const float nextAngle = fmaxf(minAngle, fminf(
+            angle + scaledInput * SERVO_CONTROL_RATE_DPS * TELEOP_TICK_SECONDS,
+            maxAngle));
+        if (nextAngle != angle) {
+            angle = nextAngle;
+            servo.setPosition(angle);
+        }
+    }
 
     void driveWithSpeedDependentTurn(float forward, float turn) {
         const float forwardMagnitude = fabsf(forward);
@@ -56,14 +79,15 @@ class Main_Code_Manual : public NRLOpMode {
             return;
         }
 
-        // While translating, hold the inside wheel at the base speed and
-        // accelerate only the outside wheel. Cap the base speed to leave
-        // headroom for steering, including when the forward stick is full.
-        const float baseMagnitude = fminf(forwardMagnitude, MOVING_TURN_FORWARD_LIMIT);
-        const float outsideMagnitude = fminf(baseMagnitude + turnMagnitude, 1.0f);
+        // Keep the inside wheel at 3/4 of the outside wheel. Below full speed,
+        // speed up the outside wheel; at the output limit, slow the inside wheel.
+        const float outsideMagnitude = fminf(
+            forwardMagnitude / MOVING_TURN_INNER_TO_OUTER_RATIO, 1.0f);
+        const float insideMagnitude =
+            outsideMagnitude * MOVING_TURN_INNER_TO_OUTER_RATIO;
         const float direction = forward < 0.0f ? -1.0f : 1.0f;
-        float left = direction * baseMagnitude;
-        float right = direction * baseMagnitude;
+        float left = direction * insideMagnitude;
+        float right = direction * insideMagnitude;
 
         if ((forward > 0.0f && turn > 0.0f) ||
             (forward < 0.0f && turn < 0.0f)) {
@@ -88,29 +112,27 @@ public:
     }
 
     void loop() override {
-        // These are for Servo-Motor operations 
-        if (gamepad1.pressed(BTN_DPAD_UP) && anglebrdg_ < ARM_MAX_ANGLE) {
-            anglebrdg_++;
-            arm.setPosition(anglebrdg_);
-        }
+        // Read each joystick axis once so controls and telemetry use the same sample.
+        const float leftX = gamepad1.leftX();
+        const float leftY = gamepad1.leftY();
+        const float rightX = gamepad1.rightX();
+        const float rightY = gamepad1.rightY();
+        telemetry.addData("joy_left_x", leftX);
+        telemetry.addData("joy_left_y", leftY);
+        telemetry.addData("joy_right_x", rightX);
+        telemetry.addData("joy_right_y", rightY);
 
-        if (gamepad1.pressed(BTN_DPAD_DOWN) && anglebrdg_ > ARM_MIN_ANGLE) {
-            --anglebrdg_;
-            arm.setPosition(anglebrdg_);
-        }
+        // Stick deflection changes servo angle at a proportional rate; neutral holds position.
+        updateServoWithJoystick(rightY, anglebrdg_, ARM_MIN_ANGLE, ARM_MAX_ANGLE, arm);
+        updateServoWithJoystick(rightX, angleclaw_, CLAW_MIN_ANGLE, CLAW_MAX_ANGLE, claw);
 
-        if (gamepad1.pressed(BTN_DPAD_LEFT) && angleclaw_ > CLAW_MIN_ANGLE) {
-            --angleclaw_;
-            claw.setPosition(angleclaw_);
+        // Hold D-pad right for an in-place pivot; left X sets the turn direction
+        // and amount. Otherwise use speed-dependent steering while driving.
+        if (gamepad1.pressed(BTN_DPAD_RIGHT)) {
+            drive.drive(0.0f, leftX);
+        } else {
+            driveWithSpeedDependentTurn(leftY, leftX);
         }
-
-        if (gamepad1.pressed(BTN_DPAD_RIGHT) && angleclaw_ < CLAW_MAX_ANGLE) {
-            angleclaw_++;
-            claw.setPosition(angleclaw_);
-        }
-       
-        // These are DC Motor (Wheel) Operations
-        driveWithSpeedDependentTurn(gamepad1.leftY(), gamepad1.rightX());
 
         if (imuReady_) {
             sensors_event_t accel;
