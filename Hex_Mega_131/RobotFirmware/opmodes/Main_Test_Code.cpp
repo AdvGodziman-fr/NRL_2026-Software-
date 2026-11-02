@@ -1,7 +1,7 @@
 #include "NRL.h"
 
 // Declare your hardware here (file-scope), e.g.:
-static HexaDCMotor leftMotor {{ .dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM, .flipped = true }};
+static HexaDCMotor leftMotor {{ .dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM}};
 static HexaDCMotor rightMotor {{ .dirPin = MOTOR_R_DIR, .pwmPin = MOTOR_R_PWM}};
 
 static constexpr int ARM_MIN_ANGLE = 0;
@@ -17,6 +17,7 @@ static HexaServo arm{{
     .startAngle = ARM_START_ANGLE,
     .settleMs = 0
 }};
+
 static HexaServo claw{{
     .signalPin = SERVO_4,
     .minAngle = CLAW_MIN_ANGLE,
@@ -24,6 +25,7 @@ static HexaServo claw{{
     .startAngle = CLAW_START_ANGLE,
     .settleMs = 0
 }};
+
 static TankDrive drive(leftMotor, rightMotor);
 
 static constexpr float MOVING_TURN_THRESHOLD = 0.25f;
@@ -89,8 +91,7 @@ class Main_Test_Code : public NRLOpMode {
         float left = direction * insideMagnitude;
         float right = direction * insideMagnitude;
 
-        if ((forward > 0.0f && turn > 0.0f) ||
-            (forward < 0.0f && turn < 0.0f)) {
+        if (turn > 0.0f) {
             left = direction * outsideMagnitude;
         } else {
             right = direction * outsideMagnitude;
@@ -106,9 +107,6 @@ public:
         leftMotor.begin();
         rightMotor.begin();
         drive.setRampRate(0.75f);
-        SPI.begin(IMU_SCK_PIN, IMU_MISO_PIN, IMU_MOSI_PIN, IMU_CS_PIN);
-        imuReady_ = imu.begin_SPI(IMU_CS_PIN, &SPI);
-        telemetry.addData("imu_status", imuReady_ ? "connected" : "not found");
     }
 
     void loop() override {
