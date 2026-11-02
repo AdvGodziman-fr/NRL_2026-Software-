@@ -2,6 +2,21 @@ Max Angle of servo sweep : 63 deg.( from 90 to 27 or 88.5 to 30)
 Max Angle of servo (front carrier) : 145 (from 90 to 145)
 
 
+
+
+static HexaDCMotor leftMotor {{ .dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM}};
+static HexaDCMotor rightMotor {{ .dirPin = MOTOR_R_DIR, .pwmPin = MOTOR_R_PWM, .flipped = true }};
+static HexaServo arm{{.signalPin = SERVO_1, .minAngle = 15.0f, .maxAngle = 90.0f, .startAngle = 30.0f, .settleMs = 0 }};
+static HexaServo claw{{.signalPin = SERVO_4, .minAngle = 35.0f, .maxAngle = 175.0f, .startAngle = 90.0f, .settleMs = 0 }};
+static TankDrive drive(leftMotor, rightMotor);
+
+
+
+
+
+
+
+
 #include "NRL.h"
 
 static HexaServo arm{{.signalPin = SERVO_1, .startAngle = 88.5f, .settleMs = 0}};
