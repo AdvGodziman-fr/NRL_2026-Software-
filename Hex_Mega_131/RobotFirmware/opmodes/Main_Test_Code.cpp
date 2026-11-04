@@ -66,7 +66,7 @@ class Main_Test_Code : public NRLOpMode {
         }
         servo.setPosition(currentAngle);
         //Adding telemetry data to inform driver
-        telemetry.addData("Arm Angle Currrent:", currentAngle);
+        telemetry.addData("Claw Angle Currrent:", currentAngle);
     }
     
     // ---------------- SPEED-DEPENDENT DRIVE ----------------
