@@ -100,15 +100,12 @@ public:
         driveWithSpeedDependentTurning();
 
         // -------- SERVO CONTROL --------
-
+        servoArm(arm,armAngle);
+        servoClaw(claw,clawAngle);
 
         // Telemetry Data
-        telemetry.addData("Current Arm Angle: ", armAngle);
-        telemetry.addData("Current Claw Angle: ", clawAngle);
-        telemetry.addData("Joy - Left X", gamepad1.leftX());
         telemetry.addData("Joy - Left Y", gamepad1.leftY());
         telemetry.addData("Joy - Right X", gamepad1.rightX());
-        telemetry.addData("Joy - Right Y", gamepad1.rightY());
     }
 
     void stop() override {
