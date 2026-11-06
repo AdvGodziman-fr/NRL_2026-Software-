@@ -2,22 +2,22 @@
 #include <cmath>
 
 // ---------------- HARDWARE ----------------
-static HexaDCMotor leftMotor {{.dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM}};
+static HexaDCMotor leftMotor {{.dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM }};
 static HexaDCMotor rightMotor {{.dirPin = MOTOR_R_DIR, .pwmPin = MOTOR_R_PWM, .flipped = true}};
 
-static HexaServo arm {{.signalPin = SERVO_1, .minAngle = 29.5f, .maxAngle = 88.5f, .startAngle = 30.0f, .settleMs = 0}};
-static HexaServo claw {{.signalPin = SERVO_4, .minAngle = 90.0f, .maxAngle = 175.0f, .startAngle = 90.0f, .settleMs = 0}};
+static HexaServo arm {{.signalPin = SERVO_1, .minAngle = 29.5f, .maxAngle = 88.5f, .startAngle = 30.0f, .settleMs = 30}};
+static HexaServo claw {{.signalPin = SERVO_4, .minAngle = 90.0f, .maxAngle = 175.0f, .startAngle = 90.0f, .settleMs = 30}};
 
 static TankDrive drive(leftMotor, rightMotor);
 
 // ---------------- SERVO SETTINGS ----------------
 // Arm positions selected sequentially using RB.
-constexpr float ARM_ANGLES[] = {88.5f, 50.0f, 29.5f};
+constexpr float ARM_ANGLES[] = {60.0f, 50.0f, 40.5f};
 constexpr int TOTAL_ANGLES = sizeof(ARM_ANGLES) / sizeof(ARM_ANGLES[0]);
 
 // Claw alternates between these two target positions.
-constexpr float CLAW_OPEN_ANGLE = 145.0f;
-constexpr float CLAW_CLOSED_ANGLE = 90.0f;
+constexpr float CLAW_OPEN_ANGLE = 160.0f;
+constexpr float CLAW_CLOSED_ANGLE = 125.0f;
 
 // Claw moves by this many degrees per loop iteration.
 constexpr float CLAW_STEP = 1.0f;
@@ -31,7 +31,6 @@ constexpr float MAX_TURN_SCALE = 1.00f;
 constexpr float SLOW_MODE_SCALE = 0.25f;
 
 // ---------------- MAIN CLASS ----------------
-
 class Main_Code_Manual : public NRLOpMode {
     float armAngle;         
     float clawAngle;         
@@ -94,7 +93,7 @@ class Main_Code_Manual : public NRLOpMode {
 
     void driveWithSpeedDependentTurning() {
         float forward = -gamepad1.leftY();
-        float turn = gamepad1.rightX();
+        float turn = -gamepad1.rightX();
 
         float forwardMagnitude = std::fabs(forward);
 
