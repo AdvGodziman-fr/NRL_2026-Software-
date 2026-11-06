@@ -13,7 +13,7 @@ constexpr float DEADZONE = 0.08f;
 constexpr float SERVO_SPEED = 60.0f;
 constexpr float LOOP_TIME = 0.01f;
 //Defining array for arm angles:
-constexpr int angles[] = {88.5, 50, 29.5}; // The angles you want to toggle between
+constexpr float angles[] = {88.5f, 50.0f, 29.5f}; // The angles you want to toggle between
 constexpr int TOTAL_ANGLES = sizeof(angles) / sizeof(angles[0]);
 static int currentAngleIndex = 0;
 //Static counter for claw state:
@@ -38,12 +38,12 @@ class Main_Test_Code : public NRLOpMode {
         }
         servo.setPosition(currentAngle);
         //Adding telemetry data to inform driver
-        telemetry.addData("Arm Angle Currrent:", currentAngle);
+        telemetry.addData("Arm Angle Current:", currentAngle);
     }
 
      //For Claw: (Gradual angle open close states)
-     void servoClaw(HexaServo &servo, float &currentAngle){
-       //Using a pre-defiend claw speed to open and close:
+    void servoClaw(HexaServo &servo, float &currentAngle){
+        //Using a pre-defiend claw speed to open and close:
         const float speed = 1.0f; // Adjust this to change how fast it opens/closes
     
         //Listening for the button to TOGGLE the target state

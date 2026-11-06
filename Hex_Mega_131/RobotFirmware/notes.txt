@@ -1,4 +1,4 @@
-Max Angle of servo sweep : 63 deg.( from 90 to 27 or 88.5 to 30)
+Max Angle of servo sweep : 63 deg.( from 90 to 29.5)
 Max Angle of servo (front carrier) : 145 (from 90 to 145)
 
 
