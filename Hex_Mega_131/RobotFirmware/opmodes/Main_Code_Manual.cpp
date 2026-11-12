@@ -1,3 +1,6 @@
+
+//tung tu tung tu tung saahur tung tung tung tung tung sahuur 
+
 #include "NRL.h"
 #include <cmath>
 
@@ -23,7 +26,7 @@ constexpr float CLAW_CLOSED_ANGLE = 125.0f;
 constexpr float CLAW_STEP = 1.0f;
 
 // ---------------- DRIVE SETTINGS ----------------
-// Turning sensitivity decreases as forward/reverse speed increases.
+// Turning sensitivity decreases as forward/reverse speed increases. 
 constexpr float MIN_TURN_SCALE = 0.55f;
 constexpr float MAX_TURN_SCALE = 1.00f;
 
@@ -59,7 +62,7 @@ class Main_Code_Manual : public NRLOpMode {
 
     // ---------------- CLAW CONTROL ----------------
     void servoClaw() {
-        // Each DPAD_UP press switches the claw's target between open and closed.
+        // Each DPAD_UP press switches the claw's target between open and closed. 
         if (gamepad1.justPressed(BTN_DPAD_UP)) {
             clawOpen = !clawOpen;
         }

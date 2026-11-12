@@ -1,6 +1,6 @@
 #include "NRL.h"
 
-static HexaServo arm{{.signalPin = SERVO_1, .startAngle = 90.0f, .settleMs = 0}};
+static HexaLineArray line{ hexaLineConfig() }; // 8-sensor bar configuration (ch0 to ch7)
 
 class Test_Prac1 : public NRLOpMode {
     int angle_ = 0;
@@ -9,27 +9,25 @@ class Test_Prac1 : public NRLOpMode {
 
 public:
     void init() override {
-        arm.begin();
-        angle_ = static_cast<int>(arm.getPosition());
-        lastAngleChangeMs_ = millis();
-        sweepComplete_ = false;
+        Serial.begin(115200);
+        line.begin(); // Initializes the sensor array and loads saved calibration data
     }
 
     void loop() override {
-        if (sweepComplete_) return;
-        telemetry.addData("arm", angle_);
-
-        if (angle_ == 146) {
-            sweepComplete_ = true;
-        } else if (millis() - lastAngleChangeMs_ >= 500) {
-            lastAngleChangeMs_ = millis();
-            angle_ = angle_ + 10;
-            arm.setPosition(angle_);
+        // Print the raw or normalized readings (0–1000) for all 8 IR sensors
+        Serial.print("Sensors [0-7]: ");
+        for (uint8_t ch = 0; ch < 8; ch++) {
+            uint16_t reading = line.read(ch);
+            Serial.print(reading);
+            Serial.print("\t");
         }
+        Serial.println();
+
+        delay(100); // Small delay to readable output rate
     }
 
     void stop() override {
-        arm.detach(); // let the servo relax
+        ;
     }
 };
 
