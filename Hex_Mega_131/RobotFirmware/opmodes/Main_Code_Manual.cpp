@@ -1,8 +1,15 @@
-
-//tung tu tung tu tung saahur tung tung tung tung tung sahuur 
-
 #include "NRL.h"
 #include <cmath>
+
+// ---------------- BAY SERVO SETTINGS (CONTINUOUS) ----------------
+// For a continuous servo, setPosition() is a speed/direction command, not an angle
+//   90 = stop, below 90 = one direction, above 90 = the other. Further from 90 = faster.
+constexpr float BAY_STOP_POS = 90.0f;
+
+// Bay controls (hold-to-move): hold DPAD_LEFT = bay up, hold DPAD_RIGHT = bay down.
+// If the bay moves the wrong way, swap these two values.
+constexpr float BAY_UP_POS = 0.0f;        // Full speed counterclockwise (try 45.0f for slower)
+constexpr float BAY_DOWN_POS = 180.0f;    // Full speed clockwise (try 135.0f for slower)
 
 // ---------------- HARDWARE ----------------
 static HexaDCMotor leftMotor {{.dirPin = MOTOR_L_DIR, .pwmPin = MOTOR_L_PWM }};
@@ -10,6 +17,10 @@ static HexaDCMotor rightMotor {{.dirPin = MOTOR_R_DIR, .pwmPin = MOTOR_R_PWM, .f
 
 static HexaServo arm {{.signalPin = SERVO_1, .minAngle = 29.5f, .maxAngle = 88.5f, .startAngle = 30.0f, .settleMs = 30}};
 static HexaServo claw {{.signalPin = SERVO_4, .minAngle = 90.0f, .maxAngle = 175.0f, .startAngle = 90.0f, .settleMs = 30}};
+
+// Bay: settleMs is left at its default of 0 so the PWM signal is never auto-detached.
+// (A detached continuous servo gets no signal, so it would stop turning.)
+static HexaServo bay {{.signalPin = SERVO_3, .minAngle = 0.0f, .maxAngle = 180.0f, .startAngle = BAY_STOP_POS}};
 
 static TankDrive drive(leftMotor, rightMotor);
 
@@ -31,14 +42,17 @@ constexpr float MIN_TURN_SCALE = 0.55f;
 constexpr float MAX_TURN_SCALE = 1.00f;
 
 // Drive output is reduced to 25% while LB is held.
-constexpr float SLOW_MODE_SCALE = 0.25f;
+constexpr float SLOW_MODE_SCALE = 0.45f;
 
 // ---------------- MAIN CLASS ----------------
 class Main_Code_Manual : public NRLOpMode {
     float armAngle;         
-    float clawAngle;         
+    float clawAngle;  
     int currentAngleIndex;  
-    bool clawOpen;    
+    bool clawOpen;
+
+    // Continuous servo state: +1 = rotating up, -1 = rotating down, 0 = stopped
+    int bayDir;
 
     // ---------------- ARM CONTROL ----------------
     void servoArm() {
@@ -92,8 +106,28 @@ class Main_Code_Manual : public NRLOpMode {
         telemetry.addData("Claw State: ", clawOpen ? 1 : 0);
     }
 
-    // ---------------- DRIVE CONTROL ----------------
+    // ---------------- BAY CONTROL (CONTINUOUS, HOLD-TO-MOVE) ----------------
+    void servoBay() {
+        bool upHeld   = gamepad1.pressed(BTN_DPAD_LEFT);   // LEFT  = bay up
+        bool downHeld = gamepad1.pressed(BTN_DPAD_RIGHT);  // RIGHT = bay down
 
+        // Direction follows exactly what is held. Both held (or neither) = stop.
+        int newDir = 0;
+        if (upHeld && !downHeld)      newDir = +1;
+        else if (downHeld && !upHeld) newDir = -1;
+
+        // Send a command only when the direction changes, so it never flip-flops.
+        if (newDir != bayDir) {
+            bayDir = newDir;
+            if (bayDir > 0)      bay.setPosition(BAY_UP_POS);
+            else if (bayDir < 0) bay.setPosition(BAY_DOWN_POS);
+            else                 bay.setPosition(BAY_STOP_POS);
+        }
+
+        telemetry.addData("Bay Dir (+1 up, -1 down): ", bayDir);
+    }
+
+    // ---------------- DRIVE CONTROL ----------------
     void driveWithSpeedDependentTurning() {
         float forward = -gamepad1.leftY();
         float turn = -gamepad1.rightX();
@@ -115,40 +149,38 @@ class Main_Code_Manual : public NRLOpMode {
 
 public:
     // ---------------- INITIALIZATION ----------------
-
     void init() override {
-        // Initialize both servos and both drive motors.
+        // Initialize all servos and drive motors.
+        bay.begin();
         arm.begin();
         claw.begin();
         leftMotor.begin();
         rightMotor.begin();
 
+        // Force continuous servo into stopped neutral state immediately on init.
+        bay.setPosition(BAY_STOP_POS);
+        bayDir = 0;
+
         // Initialize software angle tracking from the servo's reported positions.
         armAngle = arm.getPosition();
         clawAngle = claw.getPosition();
-
-        // Start the index immediately before the first preset.
-        // Therefore, the first RB press selects 88.5°.
         currentAngleIndex = TOTAL_ANGLES - 1;
-
-        // The claw initially targets its closed position.
         clawOpen = false;
     }
 
     // ---------------- MAIN LOOP ----------------
-
     void loop() override {
-        // Update drivetrain controls on every loop.
         driveWithSpeedDependentTurning();
-
-        // Process arm and claw controls.
         servoArm();
         servoClaw();
+        servoBay();
     }
 
     // ---------------- STOP ----------------
     void stop() override {
-        // Detach the servos when the OpMode stops.
+        // Neutralize and detach all servos when the OpMode stops.
+        bay.setPosition(BAY_STOP_POS);
+        bay.detach();
         arm.detach();
         claw.detach();
     }
